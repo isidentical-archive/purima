@@ -31,7 +31,7 @@ class SimpleHTMLConstructor:
             pass
             
     @contextmanager
-    def tag(self, tag, **attrs):
+    def tag(self, tag, close=True, **attrs):
         attrs = self._strip_attrs(attrs)
         try:
             self._buffer.write(f"<{tag}")
@@ -42,9 +42,11 @@ class SimpleHTMLConstructor:
             self.nl()
             yield
         finally:
-            self._buffer.write(f"</{tag}>")
             self._indent -= 1
             self.nl()
+            if close:
+                self._buffer.write(f"</{tag}>")
+            
             
     @staticmethod
     def _strip_attrs(attrs):
@@ -60,12 +62,12 @@ def construct_preview(meta):
     html = SimpleHTMLConstructor()
     with html.tag("div", cls="row"):
         with html.tag("div", cls="col-3"):
-            html.ctx("img", src=meta["image"], alt=meta.get("title"))
+            html.ctx("img", close=False, src=meta["image"], alt=meta.get("title"))
         with html.tag("div", cls="col-9"):
             if meta.get("title"):
                 with html.tag("h3"):
                     html.write(meta["title"], " ", meta.get("site_name"))
-                    html.ctx("br")
+                    html.ctx("br", close=False)
             if meta.get("description"):
                 with html.tag("p"):
                     html.write(meta["description"])
