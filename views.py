@@ -1,3 +1,4 @@
+from itertools import chain
 from django.views.generic import ListView
 
 class ExtendedListView(ListView):
