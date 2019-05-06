@@ -5,6 +5,7 @@ from io import StringIO
 from contextlib import contextmanager
 from functools import lru_cache
 
+NO_PREVIEW = "https://flowers.next.co.uk/assets/images/md/no-image.png"
 class MetaParser(HTMLParser):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,18 +66,19 @@ class InsufficientTags(Exception):
     
 def obtain_image(base, image):
     if image.startswith('/'):
-        url = urlparse(base)
         image = f"{url.scheme}://{url.netloc}{image}"
     return image
 
 def construct_preview(url, meta):
+    _url = urlparse(url)
     if not all(map(lambda tag: tag in meta, {"title"})):
-        raise InsufficientTags
+        title = url.netloc
         
     html = SimpleHTMLConstructor()
     with html.tag("div", cls="row"):
         with html.tag("div", cls="col-3"):
-            html.ctx("img", close=False, src=obtain_image(url, meta.get("image")), alt=meta.get("title"), cls="img-thumbnail")
+            with html.tag("a", href=url):
+                html.ctx("img", close=False, src=obtain_image(_url, meta.get("image", NO_PREVIEW)), alt=meta.get("title"), cls="img-thumbnail")
         with html.tag("div", cls="col-9"):
             with html.tag("h3"):
                 html.write(meta["title"])
@@ -88,7 +90,7 @@ def construct_preview(url, meta):
     return str(html)
 
 @lru_cache(None)
-def get_preview(url):
+def _get_preview(url):
     parser = MetaParser()
     with urlopen(url) as conn:
         headers = conn.info()
