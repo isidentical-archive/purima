@@ -1,7 +1,9 @@
 from urllib.request import urlopen
+from urllib.parse import urlparse
 from html.parser import HTMLParser
 from io import StringIO
 from contextlib import contextmanager
+from functools import lru_cache
 
 class MetaParser(HTMLParser):
     def __init__(self, *args, **kwargs):
@@ -57,28 +59,39 @@ class SimpleHTMLConstructor:
     def __str__(self):
         return self._buffer.getvalue()
     
+
+class InsufficientTags(Exception):
+    pass
+    
+def obtain_image(base, image):
+    if image.startswith('/'):
+        url = urlparse(base)
+        image = f"{url.scheme}://{url.netloc}{image}"
+    return image
+
+def construct_preview(url, meta):
+    if not all(map(lambda tag: tag in meta, {"title"})):
+        raise InsufficientTags
         
-def construct_preview(meta):
     html = SimpleHTMLConstructor()
     with html.tag("div", cls="row"):
         with html.tag("div", cls="col-3"):
-            html.ctx("img", close=False, src=meta["image"], alt=meta.get("title"))
+            html.ctx("img", close=False, src=obtain_image(url, meta.get("image")), alt=meta.get("title"), cls="img-thumbnail")
         with html.tag("div", cls="col-9"):
-            if meta.get("title"):
-                with html.tag("h3"):
-                    html.write(meta["title"], " ", meta.get("site_name"))
-                    html.ctx("br", close=False)
+            with html.tag("h3"):
+                html.write(meta["title"])
+                html.ctx("br", close=False)
             if meta.get("description"):
                 with html.tag("p"):
                     html.write(meta["description"])
 
     return str(html)
-                    
-                
+
+@lru_cache(None)
 def get_preview(url):
     parser = MetaParser()
     with urlopen(url) as conn:
         headers = conn.info()
         parser.feed(conn.read().decode())
-    
-    return construct_preview(parser._meta)
+
+    return construct_preview(url, parser._meta)

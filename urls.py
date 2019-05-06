@@ -1,3 +1,4 @@
+from collections import UserList
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
@@ -16,13 +17,12 @@ class IncludeFilter:
     def __str__(self):
         return self.module
         
-class PatternManager:
+class PatternManager(UserList):
     """A pattern manager for urlpatterns. 
     
-    Subclass it with collections.UserList and then
-    add class variables about your routes.
+    Subclass it with routes
     
-        class XXXPatterns(PatternManager, UserList):
+        class XXXPatterns(PatternManager):
             <name> = <path>, <view>
         
         urlpatterns = XXXPatterns()
@@ -43,8 +43,8 @@ class PatternManager:
     for IncludeFilter will used through to patch urlpatterns of imported module."""
     
     
-    def __init__(self):
-        self.data = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         patterns = dict(
             filter(
                 lambda member: not member[0].startswith("_"),
@@ -64,7 +64,8 @@ class PatternManager:
             route, view = route
             if hasattr(view, "as_view"):
                 view = view.as_view()
-
+            
+            
             pattern = path(route, view, name=name)
             self.data.append(pattern)
     
@@ -85,3 +86,4 @@ class PatternManager:
 
         urlconf_module.urlpatterns = _type(urlpatterns)
         included = urlconf_module, *meta
+        return included
