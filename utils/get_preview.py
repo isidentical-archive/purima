@@ -81,7 +81,8 @@ def construct_preview(url, meta):
                 html.ctx("img", close=False, src=obtain_image(_url, meta.get("image", NO_PREVIEW)), alt=meta.get("title"), cls="img-thumbnail")
         with html.tag("div", cls="col-9"):
             with html.tag("h3"):
-                html.write(meta["title"])
+                with html.tag("a", href=url):
+                    html.write(meta["title"])
                 html.ctx("br", close=False)
             if meta.get("description"):
                 with html.tag("p"):
